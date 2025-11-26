@@ -4,7 +4,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "¡Hola, a todos! Bienvenido a Flask."
+    return "¡Hola, Josselyn Alejandra Mena Bastidas"
 
 # --- Tests simples usando solo Flask ---
 def run_tests():
