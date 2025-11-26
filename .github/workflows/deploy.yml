@@ -39,7 +39,7 @@ jobs:
           echo "✅ Tests completados con éxito!"
 
   build:
-    name: 🏗️ Build & Push
+    name: 🏗️ Build & Publish Docker Package
     needs: test
     runs-on: ubuntu-latest
 
@@ -54,7 +54,14 @@ jobs:
           username: ${{ env.REPO_OWNER }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: 🏗️ Build & Push Docker Image
+      - name: 🏗️ Build Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: 📦 Push Docker Image to GHCR
         uses: docker/build-push-action@v6
         with:
           context: .
