@@ -52,7 +52,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ env.REPO_OWNER }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: 🏗️ Build & Push Docker Image
         uses: docker/build-push-action@v6
