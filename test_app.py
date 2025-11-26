@@ -1,29 +1,38 @@
+import pytest
 from app import app
 
-# Crear un cliente de pruebas
-client = app.test_client()
+@pytest.fixture
+def client():
+    """Configura el cliente de pruebas de Flask"""
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        yield client
 
-def test_home_status_code():
-    """Verifica que la ruta principal responde 200 OK"""
-    response = client.get("/")
+def test_home(client):
+    """Prueba que el endpoint '/' responda correctamente"""
+    response = client.get('/')
     assert response.status_code == 200
-    print("test_home_status_code: OK")
+    assert response.json == {"message": "API funcionando correctamente"}
 
-def test_home_content():
-    """Verifica que el contenido de la ruta principal tenga algo"""
-    response = client.get("/")
-    if b"Hola" in response.data or b"hello" in response.data or response.data != b"":
-        print("test_home_content: OK")
-    else:
-        print("test_home_content: FAIL")
+def test_predict_success(client):
+    """Prueba que '/predict' funcione con datos válidos"""
+    test_data = {"text": "Hola mundo"}
+    response = client.post('/predict', json=test_data)
+    
+    assert response.status_code == 200
+    assert "result" in response.json
+    assert response.json["result"] == "IA procesó tu texto: Hola mundo"
 
-def test_not_found():
-    """Verifica que rutas no existentes devuelvan 404"""
-    response = client.get("/ruta_que_no_existe")
-    assert response.status_code == 404
-    print("test_not_found: OK")
+def test_predict_missing_field(client):
+    """Prueba que '/predict' devuelva error 400 si falta el campo 'text'"""
+    test_data = {"otro_campo": "valor"}
+    response = client.post('/predict', json=test_data)
+    
+    assert response.status_code == 400
+    assert "error" in response.json
+    assert response.json["error"] == "Debe enviar el campo 'text'"
 
-if __name__ == "__main__":
-    test_home_status_code()
-    test_home_content()
-    test_not_found()
+def test_predict_empty_json(client):
+    """Prueba que '/predict' maneje JSON vacío"""
+    response = client.post('/predict', json={})
+    assert response.status_code == 400
