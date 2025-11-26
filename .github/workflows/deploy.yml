@@ -7,13 +7,12 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: bastidas
   IMAGE_TAG: 1.0.5
   REPO_OWNER: jossy2005
 
 permissions:
   contents: read
-  packages: write
+  packages: write  
 
 jobs:
   build:
@@ -38,29 +37,26 @@ jobs:
           pytest -v --tb=short
           echo "✅ Tests completados con éxito!"
 
+      
+      - name: Lowercase Repo Name
+        run: |
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY##*/}" | tr '[:upper:]' '[:lower:]' >> $GITHUB_ENV
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ env.REPO_OWNER }} 
-          password: ${{ secrets.GHCR_PAT }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          tags: ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }},${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Mostrar variables básicas
-        run: |
-          echo "Probando conexión SSH con:"
-          echo "Host: ${{ secrets.VPS_HOST }}"
-          echo "Usuario: ${{ secrets.VPS_USER }}"
-          echo "Password: ${{ secrets.VPS_PASSWORD }}"
-          echo "Puerto: ${{ secrets.VPS_SSH_PORT }}"
-
-      - name: Probar conexión SSH
+      - name: Probar conexión SSH (Seguro)
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -68,10 +64,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_SSH_PORT }}
           script: |
-            echo "Conexión exitosa desde Github Actions"
-            hostname
-            whoami
-            uptime
+            echo "Conexión exitosa. Hostname: $(hostname)"
 
       - name: Pasar stack.yml al servidor
         uses: appleboy/scp-action@v1
@@ -92,17 +85,18 @@ jobs:
           port: ${{ secrets.VPS_SSH_PORT }}
           script: |
             cd ~/despliegue
-
-            # Login en GHCR y pull de la imagen
+            
+            # Usamos GITHUB_TOKEN o tu PAT si lo necesitas en el servidor remoto
+            # Nota: El servidor remoto SÍ necesita un PAT real si hace docker login, 
+            # pero intentemos primero con el nombre de usuario.
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ env.REPO_OWNER }} --password-stdin
+            
+            # Nota: Como cambiamos el nombre de la imagen arriba para que coincida con el repo
+            # debemos asegurarnos de que el stack.yml use ese mismo nombre nuevo.
+            # O usar la variable IMAGE_NAME que definimos antes (examen_josselyn-mena)
+            
             docker pull ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-
-            # Borrar stack anterior
+            
             docker stack rm bastidas || true
             sleep 20
-
-            # Despliegue de stack nuevo
             docker stack deploy --with-registry-auth -c stack.yml bastidas
-
-            # Verificar servicios
-            docker service ls
