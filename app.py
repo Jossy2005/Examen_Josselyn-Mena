@@ -1,69 +1,35 @@
-from flask import Flask, request, jsonify, render_template_string
-import random
-import datetime
+from flask import Flask
 
 app = Flask(__name__)
 
-# ----------------------------
-# Página principal (HTML simple)
-# ----------------------------
 @app.route("/")
 def home():
-    html = """
-    <html>
-        <head>
-            <title>API Interactiva</title>
-        </head>
-        <body style="font-family: Arial; padding: 40px;">
-            <h1>🚀 Bienvenido a la API Interactiva</h1>
-            <p>Usa el endpoint <strong>/predict</strong> enviando JSON para recibir una respuesta IA simulada.</p>
-            <p>Ejemplo:</p>
-            <pre>
-POST /predict
-Content-Type: application/json
+    return "¡Hola, mundo! Bienvenido a Flask."
 
-{
-    "text": "hola mundo"
-}
-            </pre>
-        </body>
-    </html>
-    """
-    return render_template_string(html)
+# --- Tests simples usando solo Flask ---
+def run_tests():
+    print("Ejecutando tests...")
+    client = app.test_client()
 
+    # Test 1: Status code de la ruta principal
+    response = client.get("/")
+    assert response.status_code == 200
+    print("✅ test_home_status_code: OK")
 
-# ----------------------------
-# Endpoint de "IA" más interactivo
-# ----------------------------
-@app.route("/predict", methods=["POST"])
-def predict():
-    data = request.get_json()
+    # Test 2: Contenido de la ruta principal
+    response = client.get("/")
+    assert b"Hola" in response.data
+    print("✅ test_home_content: OK")
 
-    if not data or "text" not in data:
-        return jsonify({"error": "Debe enviar el campo 'text'"}), 400
+    # Test 3: Ruta no encontrada devuelve 404
+    response = client.get("/ruta_que_no_existe")
+    assert response.status_code == 404
+    print("✅ test_not_found: OK")
 
-    text = data["text"]
-
-    # Simulamos un análisis más interactivo
-    confidence = round(random.uniform(0.60, 0.99), 2)
-    tipo = random.choice(["análisis general", "clasificación básica", "respuesta creativa"])
-
-    respuesta = f"Procesé tu texto y aquí está el resultado 😉"
-
-    # Log en consola (útil para debug)
-    print(f"[{datetime.datetime.now()}] Texto recibido: {text}")
-
-    return jsonify({
-        "input": text,
-        "tipo_respuesta": tipo,
-        "confianza": confidence,
-        "resultado": f"IA procesó tu texto: {text}"
-    }), 200
-
-
-# ----------------------------
-# Iniciar servidor Flask
-# ----------------------------
+# --- Ejecutar app o tests según el modo ---
 if __name__ == "__main__":
-    print("🚀 Servidor iniciando en http://0.0.0.0:5000 ...")
-    app.run(host="0.0.0.0", port=5000)
+    import sys
+    if "test" in sys.argv:
+        run_tests()
+    else:
+        app.run(host="0.0.0.0", port=5000, debug=True)
