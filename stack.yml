@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  bastidas:
+    image: ghcr.io/jossy2005/bastidas:1.0.5
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.bastidas.entrypoints=http"
+        - "traefik.http.routers.bastidas.rule=Host(`bastidas.byronrm.com`)"
+        - "traefik.http.middlewares.bastidas-https-redirect.redirectscheme.scheme=https"
+        - "traefik.http.routers.bastidas.middlewares=bastidas-https-redirect"
+        - "traefik.http.routers.bastidas-secure.entrypoints=https"
+        - "traefik.http.routers.bastidas-secure.rule=Host(`bastidas.byronrm.com`)"
+        - "traefik.http.routers.bastidas-secure.tls=true"
+        - "traefik.http.routers.bastidas-secure.tls.certresolver=http"
+        - "traefik.http.routers.bastidas-secure.service=bastidas"
+        - "traefik.http.services.bastidas.loadbalancer.server.port=5000"
+        - "traefik.docker.network=traefik-public"
+
+    networks:
+      - traefik-public
+
+networks:
+  traefik-public:
+    external: true
